@@ -1,6 +1,5 @@
 // services/mqttService.js
 const mqtt = require("mqtt");
-const fs = require("fs");
 const mqttConfig = require("../config/mqtt");
 const EventsController = require("../controllers/deviceControllers/eventsController");
 const Esp32Controller = require("../controllers/deviceControllers/esp32Controller");
@@ -21,9 +20,6 @@ class MqttService {
 
       const options = {
         ...mqttConfig,
-        key: fs.readFileSync(mqttConfig.keyPath),
-        cert: fs.readFileSync(mqttConfig.certPath),
-        ca: fs.readFileSync(mqttConfig.caPath),
         rejectUnauthorized: true,
         keepalive: 60,
         reconnectPeriod: 1000,
@@ -70,20 +66,25 @@ class MqttService {
   }
 
   verifyCertificates() {
-    const certFiles = [
-      { path: mqttConfig.keyPath, name: "Private Key" },
-      { path: mqttConfig.certPath, name: "Certificate" },
-      { path: mqttConfig.caPath, name: "CA Certificate" },
+    const requiredEnvVars = [
+      { key: "AWS_IOT_PRIVATE_KEY", name: "Private Key" },
+      { key: "AWS_IOT_CERTIFICATE", name: "Certificate" },
+      { key: "AWS_IOT_ROOT_CA", name: "CA Certificate" },
     ];
 
-    certFiles.forEach(({ path, name }) => {
-      if (!fs.existsSync(path)) {
-        throw new Error(`${name} not found at path: ${path}`);
+    requiredEnvVars.forEach(({ key, name }) => {
+      if (!process.env[key]) {
+        throw new Error(`${name} not found in environment variables: ${key}`);
       }
+
       try {
-        fs.accessSync(path, fs.constants.R_OK);
+        // Verify that the environment variable contains valid base64 data
+        const cert = Buffer.from(process.env[key], "base64").toString();
+        if (!cert.includes("BEGIN") || !cert.includes("END")) {
+          throw new Error(`${name} appears to be invalid`);
+        }
       } catch (error) {
-        throw new Error(`${name} is not readable: ${error.message}`);
+        throw new Error(`Invalid ${name} format: ${error.message}`);
       }
     });
   }

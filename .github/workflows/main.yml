@@ -16,6 +16,9 @@ jobs:
       MONGODB_URI: ${{ vars.MONGODB_URI }}
       JWT_SECRET: ${{ vars.JWT_SECRET }}
       AWS_IOT_ENDPOINT: ${{ vars.AWS_IOT_ENDPOINT }}
+      AWS_IOT_PRIVATE_KEY: ${{ vars.AWS_IOT_PRIVATE_KEY }}
+      AWS_IOT_CERTIFICATE: ${{ vars.AWS_IOT_CERTIFICATE }}
+      AWS_IOT_ROOT_CA: ${{ vars.AWS_IOT_ROOT_CA }}
       EMAIL_USER: ${{ vars.EMAIL_USER }}
       EMAIL_PASS: ${{ vars.EMAIL_PASS }}
       UNWIRED_API_TOKEN: ${{ vars.UNWIRED_API_TOKEN }}
@@ -55,6 +58,9 @@ jobs:
         echo "MONGODB_URI=${{ vars.MONGODB_URI }}" >> .env
         echo "JWT_SECRET=${{ vars.JWT_SECRET }}" >> .env
         echo "AWS_IOT_ENDPOINT=${{ vars.AWS_IOT_ENDPOINT }}" >> .env
+        echo "AWS_IOT_PRIVATE_KEY=${{ vars.AWS_IOT_PRIVATE_KEY }}" >> .env
+        echo "AWS_IOT_CERTIFICATE=${{ vars.AWS_IOT_CERTIFICATE }}" >> .env
+        echo "AWS_IOT_ROOT_CA=${{ vars.AWS_IOT_ROOT_CA }}" >> .env
         echo "EMAIL_USER=${{ vars.EMAIL_USER }}" >> .env
         echo "EMAIL_PASS=${{ vars.EMAIL_PASS }}" >> .env
         echo "UNWIRED_API_TOKEN=${{ vars.UNWIRED_API_TOKEN }}" >> .env
