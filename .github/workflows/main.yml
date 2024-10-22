@@ -11,17 +11,23 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      PORT: ${{ secrets.PORT }}
-      MONGODB_URI: ${{ secrets.MONGODB_URI }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      AWS_IOT_ENDPOINT: ${{ secrets.AWS_IOT_ENDPOINT }}
-      EMAIL_USER: ${{ secrets.EMAIL_USER }}
-      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-      UNWIRED_API_TOKEN: ${{ secrets.UNWIRED_API_TOKEN }}
-      BASE_URL: ${{ secrets.BASE_URL }}
-      EVENTS_TOPIC: ${{ secrets.EVENTS_TOPIC }}
-      CONFIG_TOPIC: ${{ secrets.CONFIG_TOPIC }}
-      SENSOR_TOPIC: ${{ secrets.SENSOR_TOPIC }}
+      # Variables
+      PORT: ${{ vars.PORT }}
+      MONGODB_URI: ${{ vars.MONGODB_URI }}
+      JWT_SECRET: ${{ vars.JWT_SECRET }}
+      AWS_IOT_ENDPOINT: ${{ vars.AWS_IOT_ENDPOINT }}
+      EMAIL_USER: ${{ vars.EMAIL_USER }}
+      EMAIL_PASS: ${{ vars.EMAIL_PASS }}
+      UNWIRED_API_TOKEN: ${{ vars.UNWIRED_API_TOKEN }}
+      BASE_URL: ${{ vars.BASE_URL }}
+      EVENTS_TOPIC: ${{ vars.EVENTS_TOPIC }}
+      CONFIG_TOPIC: ${{ vars.CONFIG_TOPIC }}
+      SENSOR_TOPIC: ${{ vars.SENSOR_TOPIC }}
+      
+      # Secrets
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
 
     steps:
     - uses: actions/checkout@v2
@@ -44,21 +50,21 @@ jobs:
 
     - name: Create env file
       run: |
-        echo "PORT=${{ secrets.PORT }}" >> .env
-        echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
-        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-        echo "AWS_IOT_ENDPOINT=${{ secrets.AWS_IOT_ENDPOINT }}" >> .env
-        echo "EMAIL_USER=${{ secrets.EMAIL_USER }}" >> .env
-        echo "EMAIL_PASS=${{ secrets.EMAIL_PASS }}" >> .env
-        echo "UNWIRED_API_TOKEN=${{ secrets.UNWIRED_API_TOKEN }}" >> .env
-        echo "BASE_URL=${{ secrets.BASE_URL }}" >> .env
-        echo "EVENTS_TOPIC=${{ secrets.EVENTS_TOPIC }}" >> .env
-        echo "CONFIG_TOPIC=${{ secrets.CONFIG_TOPIC }}" >> .env
-        echo "SENSOR_TOPIC=${{ secrets.SENSOR_TOPIC }}" >> .env
+        # Using variables
+        echo "PORT=${{ vars.PORT }}" >> .env
+        echo "MONGODB_URI=${{ vars.MONGODB_URI }}" >> .env
+        echo "JWT_SECRET=${{ vars.JWT_SECRET }}" >> .env
+        echo "AWS_IOT_ENDPOINT=${{ vars.AWS_IOT_ENDPOINT }}" >> .env
+        echo "EMAIL_USER=${{ vars.EMAIL_USER }}" >> .env
+        echo "EMAIL_PASS=${{ vars.EMAIL_PASS }}" >> .env
+        echo "UNWIRED_API_TOKEN=${{ vars.UNWIRED_API_TOKEN }}" >> .env
+        echo "BASE_URL=${{ vars.BASE_URL }}" >> .env
+        echo "EVENTS_TOPIC=${{ vars.EVENTS_TOPIC }}" >> .env
+        echo "CONFIG_TOPIC=${{ vars.CONFIG_TOPIC }}" >> .env
+        echo "SENSOR_TOPIC=${{ vars.SENSOR_TOPIC }}" >> .env
 
     - name: Run tests
       run: |
-        # Modify the test script in package.json first
         npm test || exit 0
 
     - name: Deploy to EC2
@@ -92,3 +98,15 @@ jobs:
           npm install
           pm2 restart server || pm2 start server.js
         '
+
+    - name: Verify Deployment
+      if: success()
+      run: |
+        echo "🚀 Deployment completed successfully!"
+        echo "Application deployed to ${{ secrets.EC2_HOST }}"
+
+    - name: Deployment Failed
+      if: failure()
+      run: |
+        echo "❌ Deployment failed!"
+        echo "Check the logs above for more details"
