@@ -2,11 +2,7 @@ const mongoose = require("mongoose");
 
 // MongoDB connection setup
 mongoose.connect(
-  "mongodb+srv://ankurauti:ankurauti02@cluster0.7ikri.mongodb.net/indi_test?retryWrites=true&w=majority&appName=Cluster0",
-  {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  }
+  "mongodb+srv://ankurauti:ankurauti02@cluster0.7ikri.mongodb.net/indi_test?retryWrites=true&w=majority&appName=Cluster0"
 );
 
 mongoose.connection.on("connected", () => {

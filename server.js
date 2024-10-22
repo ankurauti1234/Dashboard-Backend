@@ -11,6 +11,7 @@ const eventsRoutes = require("./routes/eventsRoutes");
 const mqttService = require("./services/mqttService");
 const mqttRoutes = require("./routes/mqttRoutes");
 const { initNotificationService } = require("./services/notificationService"); // Import the notification service
+const connectDB = require("./config/database");
 
 const app = express();
 
@@ -22,13 +23,7 @@ const server = http.createServer(app); // Create an HTTP server using Express
 app.use(express.json());
 
 // Connect to MongoDB
-mongoose
-  .connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log("Connected to MongoDB"))
-  .catch((err) => console.error("MongoDB connection error:", err));
+connectDB();
 
 // Initialize MQTT Service
 mqttService

@@ -27,7 +27,7 @@ class MqttService {
         clean: true,
       };
 
-      console.log("Attempting to connect to MQTT broker:", mqttConfig.host);
+      console.log("Attempting to connect to MQTT broker:");
 
       return new Promise((resolve, reject) => {
         this.client = mqtt.connect(
