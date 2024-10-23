@@ -4,6 +4,7 @@ const esp32DataSchema = new mongoose.Schema({
   distance: Number,
   temperature: Number,
   humidity: Number,
+  fan_state: Boolean,
   timestamp: { type: Date, default: Date.now },
 });
 

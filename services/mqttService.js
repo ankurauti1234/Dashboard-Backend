@@ -9,7 +9,7 @@ const FanState = require("../models/FanState");
 class MqttService {
   constructor() {
     this.client = null;
-    this.topics = ["apm/server", "esp32/data", "apm/config", "fan/control"];
+    this.topics = ["apm/server", "esp32/sensors", "apm/config", "fan/control"];
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectInterval = 5000; // 5 seconds
@@ -138,7 +138,7 @@ class MqttService {
         case "apm/server":
           await EventsController.saveEventData(payload);
           break;
-        case "esp32/data":
+        case "esp32/sensors":
           await Esp32Controller.saveEsp32Data(payload);
           break;
         case "apm/config":

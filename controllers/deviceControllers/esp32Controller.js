@@ -1,15 +1,15 @@
 const Esp32Data = require("../../models/Esp32Data");
 
-
 exports.saveEsp32Data = async (payload) => {
- if (!payload.DEVICE_ID) {
-   throw new Error("Message missing DEVICE_ID");
- }
 
- await Esp32Data.create({
-   DEVICE_ID: payload.DEVICE_ID,
-   data: payload,
- });
+
+  await Esp32Data.create({
+    distance: payload.distance,
+    temperature: payload.temperature,
+    humidity: payload.humidity,
+    fan_state: payload.fan_state,
+    // timestamp will be automatically added by the schema default
+  });
 };
 
 exports.getLiveEsp32Data = async (req, res) => {
