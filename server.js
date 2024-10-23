@@ -10,6 +10,7 @@ const roleRoutes = require("./routes/roleRoutes");
 const eventsRoutes = require("./routes/eventsRoutes");
 const mqttService = require("./services/mqttService");
 const mqttRoutes = require("./routes/mqttRoutes");
+const sensorRoutes = require("./routes/sensorRoutes");
 const { initNotificationService } = require("./services/notificationService"); // Import the notification service
 const connectDB = require("./config/database");
 
@@ -54,6 +55,6 @@ app.use("/api/users", userRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/mqtt", mqttRoutes);
 app.use("/api/events", eventsRoutes);
-
+app.use("/api/", sensorRoutes);
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`)); // Use the HTTP server to listen

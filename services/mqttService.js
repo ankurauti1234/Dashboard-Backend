@@ -4,11 +4,12 @@ const mqttConfig = require("../config/mqtt");
 const EventsController = require("../controllers/deviceControllers/eventsController");
 const Esp32Controller = require("../controllers/deviceControllers/esp32Controller");
 const ConfigController = require("../controllers/deviceControllers/configController");
+const FanState = require("../models/FanState");
 
 class MqttService {
   constructor() {
     this.client = null;
-    this.topics = ["apm/server", "esp32/data", "apm/config"];
+    this.topics = ["apm/server", "esp32/data", "apm/config", "fan/control"];
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectInterval = 5000; // 5 seconds
@@ -142,6 +143,14 @@ class MqttService {
           break;
         case "apm/config":
           await ConfigController.saveConfigData(payload);
+          break;
+        case "fan/control":
+          // Save fan state to database when control message is received
+          const fanState = new FanState({
+            state: payload.state,
+          });
+          await fanState.save();
+          console.log("Fan state saved:", payload.state);
           break;
         default:
           console.warn(`Unhandled topic: ${topic}`);
