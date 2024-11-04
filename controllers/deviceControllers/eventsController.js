@@ -271,7 +271,7 @@ exports.getDeviceEvents = async (req, res) => {
   }
 };
 
-exports.getLatestEventsByType = async (req, res) => {
+exports.getLatestEventByType = async (req, res) => {
   try {
     const { deviceId, type } = req.query;
 
@@ -286,23 +286,22 @@ exports.getLatestEventsByType = async (req, res) => {
     // Convert deviceId to number if it's numeric
     const numericDeviceId = isNaN(deviceId) ? deviceId : Number(deviceId);
 
-    // Create a cache key for the latest events
-    const cacheKey = `latestEvents_${numericDeviceId}_${type}`;
+    // Create a cache key for the latest event
+    const cacheKey = `latestEvent_${numericDeviceId}_${type}`;
     const cachedData = cache.get(cacheKey);
 
     if (cachedData) {
       return res.status(200).json(cachedData);
     }
 
-    const latestEvents = await Events.find({
+    // Fetch the latest event
+    const event = await Events.findOne({
       DEVICE_ID: numericDeviceId,
       Type: Number(type),
-    })
-      .sort({ TS: -1 }) // Sort by latest timestamp
-      .limit(10); // Get the latest 10 events
+    }).sort({ TS: -1 }); // Sort by latest timestamp and fetch only one
 
-    // Check if any events were found
-    if (latestEvents.length === 0) {
+    // Check if an event was found
+    if (!event) {
       return res
         .status(404)
         .json({ message: "No events found for this device ID and event type" });
@@ -311,7 +310,7 @@ exports.getLatestEventsByType = async (req, res) => {
     const response = {
       deviceId: numericDeviceId,
       type: Number(type),
-      latestEvents,
+      event,
     };
 
     // Cache the response
@@ -319,10 +318,11 @@ exports.getLatestEventsByType = async (req, res) => {
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Error fetching latest events:", error);
+    console.error("Error fetching latest event:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
 
 exports.getLatestMemberGuestEvent = async (req, res) => {
   try {

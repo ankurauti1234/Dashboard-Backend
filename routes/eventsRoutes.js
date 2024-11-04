@@ -21,7 +21,7 @@ router.post("/events", async (req, res) => {
 router.get("/", eventsController.getAllEvents);
 router.get("/alerts", alertsController.getAlerts);
 router.get("/location/:deviceId", getLatestDeviceLocation);
-router.get("/latest", eventsController.getLatestEventsByType);
+router.get("/latest", eventsController.getLatestEventByType);
 router.get("/afp", liveMonitorController.getAFP);
 router.get("/logo", liveMonitorController.getLogo);
 

@@ -98,10 +98,12 @@ const detailsSchema = new mongoose.Schema(
     last_boot_ts: Number,
     last_shutdown_ts: Number,
     Status: String,
+    channel_id: String,
+    accuracy:Number,
     //currently added for APM display demo
     state: { type: mongoose.Schema.Types.Mixed, default: undefined },
     gender: { type: mongoose.Schema.Types.Mixed, default: undefined },
-    age:{ type: mongoose.Schema.Types.Mixed, default: undefined },
+    age: { type: mongoose.Schema.Types.Mixed, default: undefined },
   },
   { _id: false, strict: false }
 );
