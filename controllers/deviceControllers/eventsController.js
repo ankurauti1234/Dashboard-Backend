@@ -323,40 +323,65 @@ exports.getLatestEventByType = async (req, res) => {
   }
 };
 
-
-exports.getLatestMemberGuestEvent = async (req, res) => {
+exports.getUniqueDevicesWithLatestEvent = async (req, res) => {
   try {
-    const { deviceId } = req.params;
+    const cacheKey = "uniqueDevicesWithLatestEvents";
+    const cachedData = cache.get(cacheKey);
 
-    if (!deviceId) {
-      return res.status(400).json({ message: "Device ID is required" });
+    if (cachedData) {
+      return res.status(200).json(cachedData);
     }
 
-    // Convert deviceId to number if it's stored as a number in the database
-    const numericDeviceId = Number(deviceId);
-
-    const latestEvent = await Events.findOne({
-      DEVICE_ID: isNaN(numericDeviceId) ? deviceId : numericDeviceId,
-      Type: 3, // MEMBER_GUEST_DECLARATION type
-    })
-      .sort({ TS: -1 }) // Get the latest event based on timestamp
-      .lean(); // For better performance since we don't need a Mongoose document
-
-    if (!latestEvent) {
-      return res.status(404).json({
-        message: "No MEMBER_GUEST_DECLARATION events found for this device ID",
-      });
-    }
-
-    res.status(200).json({
-      deviceId,
-      event: {
-        ...latestEvent,
-        Event_Name: "MEMBER_GUEST_DECLARATION",
+    const result = await Events.aggregate([
+      {
+        $sort: { DEVICE_ID: 1, Type: 1, TS: -1 },
       },
-    });
+      {
+        $group: {
+          _id: { DEVICE_ID: "$DEVICE_ID", Type: "$Type" },
+          latestEvent: { $first: "$$ROOT" },
+        },
+      },
+      {
+        $group: {
+          _id: "$_id.DEVICE_ID",
+          latestEvents: {
+            $push: {
+              type: "$_id.Type",
+              event: "$latestEvent",
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          deviceId: "$_id",
+          latestEvents: 1,
+        },
+      },
+    ]);
+
+    // Process the result to create the desired structure
+    const devices = result.map((device) => ({
+      deviceId: device.deviceId,
+      latestEvents: device.latestEvents.reduce((acc, curr) => {
+        acc[curr.type] = curr.event;
+        return acc;
+      }, {}),
+    }));
+
+    const response = {
+      totalDevices: devices.length,
+      devices: devices,
+    };
+
+    // Cache the response
+    cache.set(cacheKey, response, 300); // Cache for 5 minutes
+
+    res.status(200).json(response);
   } catch (error) {
-    console.error("Error fetching latest member guest event:", error);
+    console.error("Error fetching unique devices with latest events:", error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 };

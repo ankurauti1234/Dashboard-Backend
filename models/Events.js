@@ -34,6 +34,7 @@ const detailsSchema = new mongoose.Schema(
     no_of_sessions: Number,
     Meter_tamper: Boolean,
     Tv_plug_tamper: Boolean,
+    Tamper_ts: Number,
     sos: Boolean,
     main_bat_fail: Boolean,
     rtc_fail: Boolean,
