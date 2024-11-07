@@ -105,11 +105,7 @@ exports.saveEventData = async (payload) => {
     TS: payload.TS,
   });
 
-  if (!existingEvent) {
-    await Events.create(eventData);
-  } else {
-    console.log("Duplicate event detected, not saving:", eventData);
-  }
+
 
   // Handle Type 1 LOCATION event
   if (payload.Type === 1 && payload.Details && payload.Details.cell_info) {
