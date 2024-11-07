@@ -99,13 +99,17 @@ exports.saveEventData = async (payload) => {
   }
 
   // Check if the event already exists based on unique fields (e.g., ID, DEVICE_ID, and TS)
-  const existingEvent = await Events.findOne({
-    ID: payload.ID,
-    DEVICE_ID: payload.DEVICE_ID,
-    TS: payload.TS,
-  });
+  // const existingEvent = await Events.findOne({
+  //   ID: payload.ID,
+  //   DEVICE_ID: payload.DEVICE_ID,
+  //   TS: payload.TS,
+  // });
 
-
+  // if (!existingEvent) {
+  //   await Events.create(eventData);
+  // } else {
+  //   console.log("Duplicate event detected, not saving:", eventData);
+  // }
 
   // Handle Type 1 LOCATION event
   if (payload.Type === 1 && payload.Details && payload.Details.cell_info) {
