@@ -126,13 +126,18 @@ exports.getAllEvents = async (req, res) => {
       limit = 10,
       search = "",
       deviceIdRange = "",
+      deviceId, // New parameter for single device ID
       type,
     } = req.query;
 
     const filters = {};
 
-    // Search by DEVICE_ID range if specified
-    if (deviceIdRange) {
+    // Handle single deviceId query
+    if (deviceId) {
+      filters.DEVICE_ID = Number(deviceId);
+    }
+    // Only apply deviceIdRange if deviceId is not specified
+    else if (deviceIdRange) {
       const [minId, maxId] = deviceIdRange.split("-").map(Number);
       filters.DEVICE_ID = { $gte: minId, $lte: maxId };
     }
