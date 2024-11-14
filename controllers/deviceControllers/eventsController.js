@@ -2,10 +2,6 @@ const Events = require("../../models/Events");
 const Location = require("../../models/Location");
 const axios = require("axios");
 const { sendAlertNotification } = require("../../services/notificationService");
-const NodeCache = require("node-cache");
-
-// Create a cache instance
-const cache = new NodeCache({ stdTTL: 600 }); // Cache TTL set to 600 seconds (10 minutes)
 
 // Mapping of Type to Event Name
 const eventTypeMapping = {
@@ -98,19 +94,6 @@ exports.saveEventData = async (payload) => {
     sendAlertNotification(eventData);
   }
 
-  // Check if the event already exists based on unique fields (e.g., ID, DEVICE_ID, and TS)
-  // const existingEvent = await Events.findOne({
-  //   ID: payload.ID,
-  //   DEVICE_ID: payload.DEVICE_ID,
-  //   TS: payload.TS,
-  // });
-
-  // if (!existingEvent) {
-  //   await Events.create(eventData);
-  // } else {
-  //   console.log("Duplicate event detected, not saving:", eventData);
-  // }
-
   // Handle Type 1 LOCATION event
   if (payload.Type === 1 && payload.Details && payload.Details.cell_info) {
     try {
@@ -145,13 +128,6 @@ exports.getAllEvents = async (req, res) => {
       deviceIdRange = "",
       type,
     } = req.query;
-
-    const cacheKey = `allEvents_${page}_${limit}_${search}_${deviceIdRange}_${type}`;
-    const cachedData = cache.get(cacheKey);
-
-    if (cachedData) {
-      return res.status(200).json(cachedData);
-    }
 
     const filters = {};
 
@@ -192,9 +168,6 @@ exports.getAllEvents = async (req, res) => {
       events,
     };
 
-    // Cache the response
-    cache.set(cacheKey, response);
-
     res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching events:", error);
@@ -228,14 +201,6 @@ exports.getDeviceEvents = async (req, res) => {
       filters.Type = Number(type);
     }
 
-    // Create a cache key for device events
-    const cacheKey = `deviceEvents_${deviceId}_${page}_${limit}_${startDate}_${endDate}_${type}`;
-    const cachedData = cache.get(cacheKey);
-
-    if (cachedData) {
-      return res.status(200).json(cachedData);
-    }
-
     // Get events with pagination
     const events = await Events.find(filters)
       .sort({ TS: -1 }) // Latest events first
@@ -261,9 +226,6 @@ exports.getDeviceEvents = async (req, res) => {
       events,
     };
 
-    // Cache the response
-    cache.set(cacheKey, response);
-
     res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching device events:", error);
@@ -286,14 +248,6 @@ exports.getLatestEventByType = async (req, res) => {
     // Convert deviceId to number if it's numeric
     const numericDeviceId = isNaN(deviceId) ? deviceId : Number(deviceId);
 
-    // Create a cache key for the latest event
-    const cacheKey = `latestEvent_${numericDeviceId}_${type}`;
-    const cachedData = cache.get(cacheKey);
-
-    if (cachedData) {
-      return res.status(200).json(cachedData);
-    }
-
     // Fetch the latest event
     const event = await Events.findOne({
       DEVICE_ID: numericDeviceId,
@@ -313,9 +267,6 @@ exports.getLatestEventByType = async (req, res) => {
       event,
     };
 
-    // Cache the response
-    cache.set(cacheKey, response);
-
     res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching latest event:", error);
@@ -325,13 +276,6 @@ exports.getLatestEventByType = async (req, res) => {
 
 exports.getUniqueDevicesWithLatestEvent = async (req, res) => {
   try {
-    const cacheKey = "uniqueDevicesWithLatestEvents";
-    const cachedData = cache.get(cacheKey);
-
-    if (cachedData) {
-      return res.status(200).json(cachedData);
-    }
-
     const result = await Events.aggregate([
       {
         $sort: { DEVICE_ID: 1, Type: 1, TS: -1 },
@@ -343,43 +287,16 @@ exports.getUniqueDevicesWithLatestEvent = async (req, res) => {
         },
       },
       {
-        $group: {
-          _id: "$_id.DEVICE_ID",
-          latestEvents: {
-            $push: {
-              type: "$_id.Type",
-              event: "$latestEvent",
-            },
-          },
+        $replaceRoot: {
+          newRoot: "$latestEvent",
         },
       },
       {
-        $project: {
-          _id: 0,
-          deviceId: "$_id",
-          latestEvents: 1,
-        },
+        $project: { DEVICE_ID: 1, Event_Name: 1, TS: 1, Type: 1, Details: 1 },
       },
     ]);
 
-    // Process the result to create the desired structure
-    const devices = result.map((device) => ({
-      deviceId: device.deviceId,
-      latestEvents: device.latestEvents.reduce((acc, curr) => {
-        acc[curr.type] = curr.event;
-        return acc;
-      }, {}),
-    }));
-
-    const response = {
-      totalDevices: devices.length,
-      devices: devices,
-    };
-
-    // Cache the response
-    cache.set(cacheKey, response, 300); // Cache for 5 minutes
-
-    res.status(200).json(response);
+    res.status(200).json({ totalDevices: result.length, devices: result });
   } catch (error) {
     console.error("Error fetching unique devices with latest events:", error);
     res.status(500).json({ message: "Internal Server Error" });

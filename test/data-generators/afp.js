@@ -77,13 +77,17 @@ const channelIds = [
   "NDTV",
 ];
 
+// Helper function to generate random number within range
+const getRandomInt = (min, max) => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
 // Function to generate random data
 const generateDummyData = () => {
   const data = {
-    ID: Math.floor(Math.random() * 1000) + 1,
-    TS: Date.now(), // Real-time timestamp
+    TS: Math.round(Date.now() / 1000), // Real-time timestamp
     Type: 28, // Random Type
-    DEVICE_ID: 100000, // Random Type
+    DEVICE_ID: 100000,
     Details: {
       channel_id: channelIds[Math.floor(Math.random() * channelIds.length)], // Random channel ID
     },
@@ -109,7 +113,7 @@ client.on("connect", () => {
         console.log("Data sent:", message);
       }
     });
-  }, 5000);
+  },1000);
 });
 
 // Handle connection errors

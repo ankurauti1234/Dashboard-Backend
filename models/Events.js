@@ -100,22 +100,23 @@ const detailsSchema = new mongoose.Schema(
     last_shutdown_ts: Number,
     Status: String,
     channel_id: String,
-    accuracy:Number,
+    accuracy: Number,
     //currently added for APM display demo
     state: { type: mongoose.Schema.Types.Mixed, default: undefined },
     gender: { type: mongoose.Schema.Types.Mixed, default: undefined },
     age: { type: mongoose.Schema.Types.Mixed, default: undefined },
+    ID: Number,
   },
   { _id: false, strict: false }
 );
 
 const eventsSchema = new mongoose.Schema(
   {
-    ID: { type: Number, required: true },
     DEVICE_ID: { type: Number, required: true },
     TS: { type: Number, required: true },
     Type: { type: Number, required: true },
     AlertType: String,
+    Event_Name :String,
     Details: detailsSchema,
     timestamp: { type: Date, default: Date.now },
   },

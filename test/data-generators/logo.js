@@ -1,4 +1,3 @@
-// memberDeclaration.js
 const path = require("path");
 const mqtt = require("mqtt");
 const dotenv = require("dotenv");
@@ -51,9 +50,6 @@ const options = {
   clean: true,
 };
 
-// Connect to AWS IoT MQTT broker
-const client = mqtt.connect(options);
-
 // Channel IDs array
 const channelIds = [
   "Channel1",
@@ -78,21 +74,31 @@ const channelIds = [
   "GodOfWar",
 ];
 
+// Helper function to generate random number within range
+const getRandomInt = (min, max) => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
 // Function to generate random data
 const generateDummyData = () => {
-  const data = {
-    ID: Math.floor(Math.random() * 1000) + 1,
-    TS: Date.now(), // Real-time timestamp
-    Type: 29, // Random Type
-    DEVICE_ID: 100000, // Random Type
-    Details: {
-      channel_id: channelIds[Math.floor(Math.random() * channelIds.length)], // Random channel ID
-      accuracy: parseFloat(Math.random().toFixed(2)), // Random accuracy between 0 and 1 with two decimals
-    },
-  };
-
+  const data = [];
+  for (let i = 0; i < 100; i++) {
+    data.push({
+      ID: Math.floor(Math.random() * 1000) + 1,
+      TS: Math.round(Date.now() / 1000),
+      Type: 29,
+      DEVICE_ID: getRandomInt(100000, 100010), // Random device ID between 100000 and 100010
+      Details: {
+        channel_id: channelIds[Math.floor(Math.random() * channelIds.length)],
+        accuracy: parseFloat(Math.random().toFixed(2)),
+      },
+    });
+  }
   return data;
 };
+
+// Connect to AWS IoT MQTT broker
+const client = mqtt.connect(options);
 
 // Handle connection
 client.on("connect", () => {
@@ -100,18 +106,19 @@ client.on("connect", () => {
   console.log("Using endpoint:", process.env.AWS_IOT_ENDPOINT);
 
   setInterval(() => {
-    const message = generateDummyData(); // Generate dummy data
-
-    // Publish the message to the MQTT topic
+    const messages = generateDummyData();
     const topic = process.env.EVENTS_TOPIC || "apm/server";
-    client.publish(topic, JSON.stringify(message), { qos: 1 }, (error) => {
-      if (error) {
-        console.error("Publish error:", error);
-      } else {
-        console.log("Data sent:", message);
-      }
+
+    messages.forEach((message) => {
+      client.publish(topic, JSON.stringify(message), { qos: 1 }, (error) => {
+        if (error) {
+          console.error("Publish error:", error);
+        } else {
+          console.log("Data sent:", message);
+        }
+      });
     });
-  }, 5000);
+  }, 1000); // Send data every 1 second
 });
 
 // Handle connection errors
