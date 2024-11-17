@@ -106,6 +106,7 @@ const detailsSchema = new mongoose.Schema(
     gender: { type: mongoose.Schema.Types.Mixed, default: undefined },
     age: { type: mongoose.Schema.Types.Mixed, default: undefined },
     ID: Number,
+    detection_type: String, // Added field for logo detection type
   },
   { _id: false, strict: false }
 );

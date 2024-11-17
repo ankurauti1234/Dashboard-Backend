@@ -1,7 +1,6 @@
 // services/mqttService.js
 const mqtt = require("mqtt");
 const mqttConfig = require("../config/mqtt");
-const EventsController = require("../controllers/deviceControllers/eventsController");
 const Esp32Controller = require("../controllers/deviceControllers/esp32Controller");
 const ConfigController = require("../controllers/deviceControllers/configController");
 const FanState = require("../models/FanState");
@@ -9,7 +8,7 @@ const FanState = require("../models/FanState");
 class MqttService {
   constructor() {
     this.client = null;
-    this.topics = ["apm/server", "esp32/sensors", "apm/config", "fan/control"];
+    this.topics = [ "esp32/sensors", "apm/config", "fan/control"];
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 5;
     this.reconnectInterval = 5000; // 5 seconds
@@ -135,9 +134,6 @@ class MqttService {
       console.log(`Received message on topic ${topic}:`, payload);
 
       switch (topic) {
-        case "apm/server":
-          await EventsController.saveEventData(payload);
-          break;
         case "esp32/sensors":
           await Esp32Controller.saveEsp32Data(payload);
           break;

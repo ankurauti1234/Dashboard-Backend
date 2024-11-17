@@ -85,9 +85,9 @@ const getRandomInt = (min, max) => {
 // Function to generate random data
 const generateDummyData = () => {
   const data = {
-    TS: Math.round(Date.now() / 1000), // Real-time timestamp
+    TS: Math.round(Date.now()), // Real-time timestamp
     Type: 28, // Random Type
-    DEVICE_ID: 100000,
+    DEVICE_ID: getRandomInt(100000, 100010),
     Details: {
       channel_id: channelIds[Math.floor(Math.random() * channelIds.length)], // Random channel ID
     },

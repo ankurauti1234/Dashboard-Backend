@@ -307,3 +307,311 @@ exports.getUniqueDevicesWithLatestEvent = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+exports.getMetrics = async (req, res) => {
+  try {
+    const { deviceIdRange, types } = req.query;
+
+    // Base query object
+    const baseQuery = {};
+
+    // Handle device ID range filter
+    if (deviceIdRange) {
+      const [minId, maxId] = deviceIdRange.split("-").map(Number);
+      if (!isNaN(minId) && !isNaN(maxId)) {
+        baseQuery.DEVICE_ID = { $gte: minId, $lte: maxId };
+      }
+    }
+
+    // Handle event types filter
+    let typeArray = [];
+    if (types) {
+      typeArray = types
+        .split(",")
+        .map(Number)
+        .filter((type) => !isNaN(type));
+      if (typeArray.length > 0) {
+        baseQuery.Type = { $in: typeArray };
+      }
+    }
+
+    // Parallel execution of aggregation queries for better performance
+    const [totalDevices, totalEvents, eventTypeBreakdown] = await Promise.all([
+      // Get total number of unique devices
+      Events.distinct("DEVICE_ID", baseQuery),
+
+      // Get total number of events
+      Events.countDocuments(baseQuery),
+
+      // Get breakdown of events by type
+      Events.aggregate([
+        { $match: baseQuery },
+        {
+          $group: {
+            _id: {
+              type: "$Type",
+              eventName: "$Event_Name",
+            },
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            type: "$_id.type",
+            eventName: "$_id.eventName",
+            count: 1,
+          },
+        },
+        { $sort: { type: 1 } },
+      ]),
+    ]);
+
+    // Prepare response
+    const response = {
+      metrics: {
+        totalUniqueDevices: totalDevices.length,
+        totalEvents: totalEvents,
+        eventsByType: eventTypeBreakdown,
+      },
+      filters: {
+        deviceIdRange: deviceIdRange || "all",
+        types: types ? typeArray : "all",
+      },
+    };
+
+    // Add min and max device IDs if they exist
+    if (totalDevices.length > 0) {
+      response.metrics.deviceIdRange = {
+        min: Math.min(...totalDevices),
+        max: Math.max(...totalDevices),
+      };
+    }
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching metrics:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
+exports.getLogoDetectionEvents = async (req, res) => {
+  try {
+    const {
+      deviceId,
+      deviceIdRange,
+      detectionType,
+      page = 1,
+      limit = 50,
+      startDate,
+      endDate,
+    } = req.query;
+
+    // Validate detection type if provided
+    const validDetectionTypes = [
+      "tv",
+      "game",
+      "brand",
+      "ott_content",
+      "ott_platform",
+      "rutube",
+      "celebrity",
+      "unspecified",
+    ];
+
+    if (detectionType && !validDetectionTypes.includes(detectionType)) {
+      return res.status(400).json({
+        message: `Invalid detection type. Valid types are: ${validDetectionTypes.join(
+          ", "
+        )}`,
+      });
+    }
+
+    // Build base query
+    const query = {
+      Type: 29, // LOGO_DETECTED
+    };
+
+    // Handle device ID filtering
+    if (deviceId) {
+      // Single device ID
+      query.DEVICE_ID = Number(deviceId);
+    } else if (deviceIdRange) {
+      // Device ID range
+      const [minId, maxId] = deviceIdRange.split("-").map(Number);
+      if (!isNaN(minId) && !isNaN(maxId)) {
+        query.DEVICE_ID = { $gte: minId, $lte: maxId };
+      } else {
+        return res.status(400).json({
+          message:
+            "Invalid device ID range format. Use format: minId-maxId (e.g., 100000-100010)",
+        });
+      }
+    }
+
+    // Add detection type filter if provided
+    if (detectionType) {
+      query["Details.detection_type"] = detectionType;
+    }
+
+    // Add date range filter if provided
+    if (startDate || endDate) {
+      query.TS = {};
+      if (startDate) {
+        // Set time to start of day (00:00:00)
+        const startDateTime = new Date(startDate);
+        startDateTime.setHours(0, 0, 0, 0);
+        query.TS.$gte = startDateTime.getTime();
+      }
+      if (endDate) {
+        // Set time to end of day (23:59:59.999)
+        const endDateTime = new Date(endDate);
+        endDateTime.setHours(23, 59, 59, 999);
+        query.TS.$lte = endDateTime.getTime();
+      }
+    }
+
+    // Execute main query with pagination
+    const [events, totalCount, detectionTypeCounts] = await Promise.all([
+      Events.find(query)
+        .select({
+          DEVICE_ID: 1,
+          Type: 1,
+          TS: 1,
+          "Details.channel_id": 1,
+          "Details.detection_type": 1,
+          _id: 0,
+        })
+        .sort({ TS: -1 })
+        .skip((page - 1) * limit)
+        .limit(Number(limit)),
+
+      Events.countDocuments(query),
+
+      // Get breakdown of detection types
+      Events.aggregate([
+        {
+          $match: {
+            Type: 29,
+            ...(query.DEVICE_ID && { DEVICE_ID: query.DEVICE_ID }),
+          },
+        },
+        {
+          $group: {
+            _id: "$Details.detection_type",
+            count: { $sum: 1 },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            type: "$_id",
+            count: 1,
+          },
+        },
+        {
+          $sort: { count: -1 },
+        },
+      ]),
+    ]);
+
+    // Get unique channel IDs and their counts
+    const channelStats = await Events.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $group: {
+          _id: "$Details.channel_id",
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          channelId: "$_id",
+          count: 1,
+        },
+      },
+      {
+        $sort: { count: -1 },
+      },
+    ]);
+
+    // Get device ID range statistics
+    const deviceStats = await Events.aggregate([
+      {
+        $match: query,
+      },
+      {
+        $group: {
+          _id: null,
+          minDeviceId: { $min: "$DEVICE_ID" },
+          maxDeviceId: { $max: "$DEVICE_ID" },
+          uniqueDevices: { $addToSet: "$DEVICE_ID" },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          minDeviceId: 1,
+          maxDeviceId: 1,
+          uniqueDeviceCount: { $size: "$uniqueDevices" },
+        },
+      },
+    ]);
+
+    // Format the response
+    const response = {
+      metadata: {
+        total: totalCount,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(totalCount / limit),
+        filters: {
+          deviceId: deviceId || null,
+          deviceIdRange: deviceIdRange || null,
+          detectionType: detectionType || "all",
+          dateRange: {
+            startDate: startDate
+              ? new Date(startDate).toISOString().split("T")[0]
+              : null,
+            endDate: endDate
+              ? new Date(endDate).toISOString().split("T")[0]
+              : null,
+          },
+        },
+      },
+      statistics: {
+        devices: deviceStats[0] || {
+          minDeviceId: null,
+          maxDeviceId: null,
+          uniqueDeviceCount: 0,
+        },
+        detectionTypes: detectionTypeCounts,
+        channels: channelStats,
+      },
+      events: events.map((event) => ({
+        DEVICE_ID: event.DEVICE_ID,
+        Type: event.Type,
+        TS: event.TS,
+        timestamp: new Date(event.TS).toISOString(), // Added human-readable timestamp
+        Details: {
+          channel_id: event.Details.channel_id,
+          detection_type: event.Details.detection_type,
+        },
+      })),
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching logo detection events:", error);
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};

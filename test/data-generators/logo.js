@@ -53,25 +53,63 @@ const options = {
 // Channel IDs array
 const channelIds = [
   "Channel1",
-  "Karusel",
-  "Kinopoisk",
-  "MatchTV",
-  "Mir",
-  "MuzTV",
+  "Russia1 (0 orbit)",
+  "Russia1 (Moscow Orbit)",
   "NTV",
-  "OTR",
-  "RenTV",
-  "Russia24",
+  "Channel5",
   "RussiaK",
-  "Spas",
-  "TB3",
-  "THT",
+  "Russia24",
+  "Karusel",
+  "OTR",
   "TVCenter",
-  "YouTube",
-  "Zvezda",
+  "RenTV",
+  "Spas",
   "STS",
-  "NDTV",
+  "Domashny",
+  "TV-3",
+  "TNT",
+  "Pyatnica",
+  "Zvezda",
+  "MIR",
+
   "GodOfWar",
+  "Minecraft",
+  "PUBG",
+  "Roblox",
+  "Tekken",
+  "FIFA",
+
+  "Nike",
+  "Puma",
+  "Adidas",
+  "Emirates",
+  "Rakuten",
+  "Audi",
+  "Hankook",
+  "Samsumg",
+  "boundelle",
+  "magnit",
+  "flamenco",
+  "dodo",
+
+  "TriKota",
+
+  "VKTube",
+  "Rutube",
+  "Youtube",
+  "Kinopoisk",
+  "NBN",
+  "Wink",
+
+  "Russia1",
+  "Russia24",
+  "Solntce",
+  "MatchTV",
+  "MuzTV",
+
+  "vladimir_putin",
+  "mikhail_mishustin",
+  "random_person",
 ];
 
 // Helper function to generate random number within range
@@ -82,12 +120,13 @@ const getRandomInt = (min, max) => {
 // Function to generate random data
 const generateDummyData = () => {
   const data = [];
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 1; i++) {
     data.push({
       ID: Math.floor(Math.random() * 1000) + 1,
       TS: Math.round(Date.now() / 1000),
       Type: 29,
-      DEVICE_ID: getRandomInt(100000, 100010), // Random device ID between 100000 and 100010
+      DEVICE_ID: getRandomInt(100000, 100010),
+      // DEVICE_ID: getRandomInt(100000, 100010),
       Details: {
         channel_id: channelIds[Math.floor(Math.random() * channelIds.length)],
         accuracy: parseFloat(Math.random().toFixed(2)),

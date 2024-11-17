@@ -31,6 +31,8 @@ router.post("/events", async (req, res) => {
   }
 });
 
+router.get("/metrics", eventsController.getMetrics);
+router.get("/logo-detection", eventsController.getLogoDetectionEvents);
 router.get("/", eventsController.getAllEvents);
 router.get("/alerts", alertsController.getAlerts);
 router.get("/assets", eventsController.getUniqueDevicesWithLatestEvent);
