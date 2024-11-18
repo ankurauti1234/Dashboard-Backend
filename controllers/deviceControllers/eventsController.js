@@ -126,15 +126,27 @@ exports.getAllEvents = async (req, res) => {
       limit = 10,
       search = "",
       deviceIdRange = "",
-      deviceId, // New parameter for single device ID
+      deviceId,
       type,
+      startDate,
+      endDate,
     } = req.query;
 
     const filters = {};
 
-    // Handle single deviceId query
+    // Handle deviceId filtering
     if (deviceId) {
       filters.DEVICE_ID = Number(deviceId);
+
+      // First check if the device exists
+      const deviceExists = await Events.exists({ DEVICE_ID: Number(deviceId) });
+
+      if (!deviceExists) {
+        return res.status(404).json({
+          message: "No events found for the specified device ID",
+          deviceId: Number(deviceId),
+        });
+      }
     }
     // Only apply deviceIdRange if deviceId is not specified
     else if (deviceIdRange) {
@@ -147,17 +159,32 @@ exports.getAllEvents = async (req, res) => {
       filters.Type = type;
     }
 
+    // Add date range filter if provided
+    if (startDate || endDate) {
+      filters.TS = {};
+      if (startDate) {
+        const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
+        filters.TS.$gte = startTimestamp;
+      }
+      if (endDate) {
+        const endTimestamp = Math.floor(new Date(endDate).getTime() / 1000);
+        filters.TS.$lte = endTimestamp;
+      }
+    }
+
     // Global search in Event_Name and Details
     const searchRegex = new RegExp(search, "i"); // Case insensitive
     const searchQuery = {
       $or: [
         { Event_Name: searchRegex },
-        { "Details.description": searchRegex }, // Assuming Details has a description field
+        { "Details.description": searchRegex },
       ],
     };
 
     // Combine filters with search query
     const query = { ...filters, ...searchQuery };
+
+    console.log("Query filters:", JSON.stringify(query, null, 2));
 
     const events = await Events.find(query)
       .sort({ TS: -1 }) // Latest on top
@@ -166,17 +193,35 @@ exports.getAllEvents = async (req, res) => {
 
     const totalEvents = await Events.countDocuments(query); // Total count for pagination
 
+    // Check if any events were found
+    if (events.length === 0) {
+      return res.status(404).json({
+        message: "No events found with the specified criteria",
+        filters: query,
+      });
+    }
+
     const response = {
       total: totalEvents,
       page: Number(page),
       limit: Number(limit),
       events,
+      appliedFilters: {
+        dateRange: startDate || endDate ? { startDate, endDate } : null,
+        deviceId,
+        deviceIdRange,
+        type,
+        search: search || null,
+      },
     };
 
     res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching events:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({
+      message: "Internal Server Error",
+      error: error.toString(),
+    });
   }
 };
 
@@ -197,8 +242,14 @@ exports.getDeviceEvents = async (req, res) => {
     // Add date range filter if provided
     if (startDate || endDate) {
       filters.TS = {};
-      if (startDate) filters.TS.$gte = new Date(startDate);
-      if (endDate) filters.TS.$lte = new Date(endDate);
+      if (startDate) {
+        const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
+        filters.TS.$gte = startTimestamp;
+      }
+      if (endDate) {
+        const endTimestamp = Math.floor(new Date(endDate).getTime() / 1000);
+        filters.TS.$lte = endTimestamp;
+      }
     }
 
     // Add event type filter if provided
@@ -206,11 +257,15 @@ exports.getDeviceEvents = async (req, res) => {
       filters.Type = Number(type);
     }
 
+    console.log("Query filters:", JSON.stringify(filters, null, 2));
+
     // Get events with pagination
     const events = await Events.find(filters)
       .sort({ TS: -1 }) // Latest events first
       .skip((page - 1) * limit)
       .limit(Number(limit));
+
+    console.log("Found events:", events.length);
 
     // Get total count for pagination
     const totalEvents = await Events.countDocuments(filters);
@@ -220,6 +275,7 @@ exports.getDeviceEvents = async (req, res) => {
       return res.status(404).json({
         message:
           "No events found for this device ID with the specified criteria",
+        filters: filters,
       });
     }
 
@@ -234,7 +290,9 @@ exports.getDeviceEvents = async (req, res) => {
     res.status(200).json(response);
   } catch (error) {
     console.error("Error fetching device events:", error);
-    res.status(500).json({ message: "Internal Server Error" });
+    res
+      .status(500)
+      .json({ message: "Internal Server Error", error: error.toString() });
   }
 };
 
